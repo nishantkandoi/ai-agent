@@ -12,6 +12,14 @@ The goals are to:
 - Keep the conversation history so the model remembers what was said earlier in the session
 - Stay small and readable, so the code is easy to understand and extend
 
-## Status
+## Usage
 
-Early stage: the project is being set up and no code has been added yet.
+`agent.py` answers questions about the IPL warehouse (BigQuery `ipl-nao.ipl_db`) using
+Gemini on Vertex AI. It writes SQL, checks it with a dry run, runs it read-only with a
+100 MB scan cap, retries on errors, and explains the result. Type `sql` to see the last query.
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install google-genai google-cloud-bigquery
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/workshop-user-key.json   # keep outside this repo
+.venv/bin/python agent.py
+```
