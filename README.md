@@ -1,25 +1,38 @@
 # ai-agent
 
-A simple Python program that lets you chat with a large language model (LLM) from your terminal.
+A terminal chat agent that answers plain-English questions about IPL cricket data (2008–2026).
 
 ## Purpose
 
-ai-agent is a thin wrapper around an LLM. It handles the details of sending your messages to the model and showing its replies, so you can have a back-and-forth conversation without writing any API code yourself.
+You ask a question like "Who took the most wickets in 2023?" and the agent works out the
+answer from the IPL warehouse in BigQuery (`ipl-nao.ipl_db`), using Gemini on Vertex AI.
+You don't need to write any SQL.
 
 The goals are to:
 
-- Give users an easy way to talk to an LLM through a chat-style interface
-- Keep the conversation history so the model remembers what was said earlier in the session
-- Stay small and readable, so the code is easy to understand and extend
+- Let anyone query IPL data in plain English through a chat-style interface
+- Remember the last few questions, so follow-ups like "what about 2022?" work
+- Stay safe (read-only queries, capped data scanned) and small enough to read and extend
+
+## How it works
+
+For each question, `agent.py`:
+
+1. Sends Gemini your question, the table schemas (loaded once at startup), notes on data
+   quirks, and your last 5 questions with their answers.
+2. Gets back a single SQL `SELECT` query.
+3. Checks the query is read-only, then does a dry run to make sure it would scan less
+   than 100 MB.
+4. Runs it and keeps up to 200 result rows.
+5. If any step fails, sends the error back to Gemini to fix the query (up to 3 attempts).
+6. Asks Gemini to answer your question using only those rows.
 
 ## Usage
-
-`agent.py` answers questions about the IPL warehouse (BigQuery `ipl-nao.ipl_db`) using
-Gemini on Vertex AI. It writes SQL, checks it with a dry run, runs it read-only with a
-100 MB scan cap, retries on errors, and explains the result. Type `sql` to see the last query.
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install google-genai google-cloud-bigquery
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/workshop-user-key.json   # keep outside this repo
 .venv/bin/python agent.py
 ```
+
+At the `you>` prompt, type a question. Type `sql` to see the last query, or `exit` to quit.
