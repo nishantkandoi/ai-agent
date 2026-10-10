@@ -34,7 +34,7 @@ the totals for the session.
 ## Usage
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install google-genai google-cloud-bigquery streamlit
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/workshop-user-key.json   # keep outside this repo
 .venv/bin/python agent.py
 ```
@@ -49,3 +49,27 @@ the SQL in an expandable section, and the follow-up questions as clickable butto
 ```bash
 .venv/bin/streamlit run app.py   # then open http://localhost:8501
 ```
+
+### Deploying to Streamlit Community Cloud
+
+1. At [share.streamlit.io](https://share.streamlit.io), sign in with GitHub and create an app
+   from this repo (branch `main`, main file `app.py`).
+2. Under **Advanced settings → Secrets**, paste the following, copying each field from the
+   service-account key JSON:
+
+   ```toml
+   app_password = "choose-a-password"
+
+   [gcp_service_account]
+   type = "service_account"
+   project_id = "..."
+   private_key_id = "..."
+   private_key = "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+   client_email = "..."
+   client_id = "..."
+   token_uri = "https://oauth2.googleapis.com/token"
+   ```
+
+The app refuses to start without `app_password` when the key comes from Secrets. Every
+question runs on the Google Cloud project's billing, so only share the password with
+people you trust.

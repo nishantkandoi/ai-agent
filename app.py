@@ -1,18 +1,59 @@
 """
 Streamlit web UI for the IPL agent. Reuses the logic in agent.py.
 
-Run:
+Run locally:
     export GOOGLE_APPLICATION_CREDENTIALS=/path/to/workshop-user-key.json
     .venv/bin/streamlit run app.py
+
+On Streamlit Community Cloud, set these in the app's Secrets instead:
+    app_password = "..."
+    [gcp_service_account]
+    ...fields from the service-account key JSON...
 """
 
+import hmac
+import json
+import os
+import tempfile
 import time
 
 import streamlit as st
 
-import agent
-
 st.set_page_config(page_title="IPL Agent", page_icon="🏏")
+
+
+def get_secret(name):
+    try:
+        return st.secrets[name]
+    except (KeyError, FileNotFoundError):
+        return None
+
+
+# Cloud deploy: write the key from Secrets to a private temp file before agent.py
+# creates its Google clients (it reads GOOGLE_APPLICATION_CREDENTIALS at import).
+service_account = get_secret("gcp_service_account")
+if service_account and "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ:
+    fd, key_path = tempfile.mkstemp(suffix=".json")
+    with os.fdopen(fd, "w") as f:
+        json.dump(dict(service_account), f)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = key_path
+
+# Password gate. Required whenever the key comes from Secrets (i.e. a public deploy).
+password = get_secret("app_password")
+if service_account and not password:
+    st.error("app_password is missing from Secrets; refusing to run unprotected.")
+    st.stop()
+if password and not st.session_state.get("authed"):
+    st.title("🏏 IPL Agent")
+    entered = st.text_input("Password", type="password")
+    if entered and hmac.compare_digest(entered, str(password)):
+        st.session_state.authed = True
+        st.rerun()
+    elif entered:
+        st.error("Wrong password.")
+    st.stop()
+
+import agent  # noqa: E402  (must come after credentials are set)
 
 
 @st.cache_resource(show_spinner="Loading schema...")
