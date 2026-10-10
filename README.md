@@ -25,7 +25,11 @@ For each question, `agent.py`:
    than 100 MB.
 4. Runs it and keeps up to 200 result rows.
 5. If any step fails, sends the error back to Gemini to fix the query (up to 3 attempts).
-6. Asks Gemini to answer your question using only those rows.
+6. Asks Gemini to answer your question using only those rows, and to suggest 3 follow-up questions.
+
+Under each answer it prints the time taken, Gemini token usage, and the calls it made
+(Gemini, BigQuery dry runs and queries, retries, data scanned). When you quit, it prints
+the totals for the session.
 
 ## Usage
 

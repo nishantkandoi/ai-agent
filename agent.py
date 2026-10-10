@@ -11,6 +11,7 @@ Setup:
 
 import json
 import re
+import time
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -57,8 +58,24 @@ def load_schema():
     return "\n".join(lines)
 
 
-def ask_model(prompt):
-    return genai_client.models.generate_content(model=MODEL, contents=prompt).text.strip()
+def new_stats():
+    return {"tokens_in": 0, "tokens_out": 0, "tokens_total": 0, "gemini_s": 0.0, "bq_s": 0.0,
+            "total_s": 0.0, "gemini_calls": 0, "dry_runs": 0, "queries": 0, "retries": 0,
+            "bytes": 0}
+
+
+def ask_model(prompt, stats):
+    start = time.perf_counter()
+    resp = genai_client.models.generate_content(model=MODEL, contents=prompt)
+    stats["gemini_s"] += time.perf_counter() - start
+    stats["gemini_calls"] += 1
+    usage = resp.usage_metadata
+    if usage:
+        # total includes Gemini 2.5 "thinking" tokens, so it can exceed in + out
+        stats["tokens_in"] += usage.prompt_token_count or 0
+        stats["tokens_out"] += usage.candidates_token_count or 0
+        stats["tokens_total"] += usage.total_token_count or 0
+    return (resp.text or "").strip()
 
 
 def extract_sql(text):
@@ -71,15 +88,45 @@ def is_read_only(sql):
     return head.startswith(("SELECT", "WITH")) and ";" not in sql
 
 
-def run_query(sql):
-    dry = bq.query(sql, job_config=bigquery.QueryJobConfig(dry_run=True, use_query_cache=False))
-    if dry.total_bytes_processed > MAX_BYTES:
-        raise ValueError(f"query would scan {dry.total_bytes_processed:,} bytes (limit {MAX_BYTES:,})")
-    job = bq.query(sql, job_config=bigquery.QueryJobConfig(maximum_bytes_billed=MAX_BYTES))
-    return [dict(r) for r in job.result(max_results=MAX_ROWS)]
+def run_query(sql, stats):
+    start = time.perf_counter()
+    try:
+        stats["dry_runs"] += 1
+        dry = bq.query(sql, job_config=bigquery.QueryJobConfig(dry_run=True, use_query_cache=False))
+        if dry.total_bytes_processed > MAX_BYTES:
+            raise ValueError(f"query would scan {dry.total_bytes_processed:,} bytes (limit {MAX_BYTES:,})")
+        stats["queries"] += 1
+        job = bq.query(sql, job_config=bigquery.QueryJobConfig(maximum_bytes_billed=MAX_BYTES))
+        rows = [dict(r) for r in job.result(max_results=MAX_ROWS)]
+        stats["bytes"] += job.total_bytes_processed or 0
+        return rows
+    finally:
+        stats["bq_s"] += time.perf_counter() - start
 
 
-def answer(question, schema, history):
+def split_followups(text):
+    parts = re.split(r"^\s*\**FOLLOW-UPS:?\**\s*$", text, maxsplit=1, flags=re.M | re.I)
+    if len(parts) < 2:
+        return text.strip(), []
+    qs = [re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", line).strip() for line in parts[1].splitlines()]
+    return parts[0].strip(), [q for q in qs if q][:3]
+
+
+def format_stats(s, followups=()):
+    lines = [
+        f"  ⏱  Time: {s['total_s']:.1f}s (Gemini {s['gemini_s']:.1f}s · BigQuery {s['bq_s']:.1f}s)",
+        f"  🔢 Tokens: {s['tokens_in']:,} in · {s['tokens_out']:,} out · {s['tokens_total']:,} total",
+        f"  🛠  Tools: Gemini ×{s['gemini_calls']} · BigQuery dry-run ×{s['dry_runs']} · "
+        f"query ×{s['queries']} · retries {s['retries']} · {s['bytes'] / 1e6:.1f} MB scanned",
+    ]
+    if followups:
+        lines.append("\n  You could also ask:")
+        lines += [f"   {i}. {q}" for i, q in enumerate(followups, 1)]
+    return "\n".join(lines)
+
+
+def answer(question, schema, history, stats):
+    table_names = ", ".join(re.findall(r"`[^`]+\.([^`.]+)`", schema))
     context = "\n".join(f"Q: {q}\nA: {a}" for q, a in history[-5:])
     base = f"""You write BigQuery Standard SQL for an IPL cricket warehouse.
 
@@ -98,28 +145,35 @@ LIMIT results to at most {MAX_ROWS} rows, return only the SQL in a ```sql block.
 Question: {question}"""
 
     prompt, error = base, None
-    for _ in range(MAX_ATTEMPTS):
-        sql = extract_sql(ask_model(prompt))
+    for attempt in range(MAX_ATTEMPTS):
+        if attempt:
+            stats["retries"] += 1
+        sql = extract_sql(ask_model(prompt, stats))
         try:
             if not is_read_only(sql):
                 raise ValueError("only a single SELECT statement is allowed")
-            rows = run_query(sql)
+            rows = run_query(sql, stats)
             break
         except Exception as e:
             error = str(e)[:500]
             prompt = f"{base}\n\nYour previous SQL:\n{sql}\nfailed with:\n{error}\nFix it."
     else:
-        return f"Sorry, I couldn't answer that. Last error: {error}", sql
+        return f"Sorry, I couldn't answer that. Last error: {error}", sql, []
 
-    summary = ask_model(f"""Question: {question}
+    reply = ask_model(f"""Question: {question}
 SQL used:
 {sql}
 Result rows (JSON, up to {MAX_ROWS}):
 {json.dumps(rows, default=str)}
 
 Answer the question concisely and directly from these results only. If the result
-is empty or doesn't answer the question, say so. Don't invent numbers.""")
-    return summary, sql
+is empty or doesn't answer the question, say so. Don't invent numbers.
+
+Then, on its own line, write FOLLOW-UPS: followed by 3 short, related follow-up
+questions (one per line) that could be answered from these tables:
+{table_names}""", stats)
+    summary, followups = split_followups(reply)
+    return summary, sql, followups
 
 
 def main():
@@ -128,10 +182,12 @@ def main():
     history = []
     print("Ask about IPL data (2008-2026). Type 'exit' to quit, 'sql' to show last query.\n")
     last_sql = None
+    session, asked = new_stats(), 0
     while True:
         try:
             q = input("you> ").strip()
         except (EOFError, KeyboardInterrupt):
+            print()
             break
         if not q:
             continue
@@ -140,9 +196,17 @@ def main():
         if q.lower() == "sql":
             print(last_sql or "(no query yet)", "\n")
             continue
-        reply, last_sql = answer(q, schema, history)
+        stats = new_stats()
+        start = time.perf_counter()
+        reply, last_sql, followups = answer(q, schema, history, stats)
+        stats["total_s"] = time.perf_counter() - start
         history.append((q, reply))
-        print(f"\nagent> {reply}\n")
+        print(f"\nagent> {reply}\n\n{format_stats(stats, followups)}\n")
+        asked += 1
+        for k in session:
+            session[k] += stats[k]
+    if asked:
+        print(f"Session total ({asked} question{'s' if asked != 1 else ''}):\n{format_stats(session)}")
 
 
 if __name__ == "__main__":
