@@ -34,9 +34,18 @@ the totals for the session.
 ## Usage
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install google-genai google-cloud-bigquery
+python3 -m venv .venv && .venv/bin/pip install google-genai google-cloud-bigquery streamlit
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/workshop-user-key.json   # keep outside this repo
 .venv/bin/python agent.py
 ```
 
 At the `you>` prompt, type a question. Type `sql` to see the last query, or `exit` to quit.
+
+### Web app
+
+`app.py` is a Streamlit chat UI on top of the same agent. It shows the stats as tiles,
+the SQL in an expandable section, and the follow-up questions as clickable buttons.
+
+```bash
+.venv/bin/streamlit run app.py   # then open http://localhost:8501
+```
