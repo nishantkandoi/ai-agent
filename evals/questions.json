@@ -1,0 +1,82 @@
+[
+  {
+    "id": "q01",
+    "category": "lookup",
+    "question": "Who won the IPL final in 2016?",
+    "gold_sql": "SELECT date, winner, team1, team2 FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND SUBSTR(date, 1, 4) = '2016'",
+    "expected_answer": "Sunrisers Hyderabad (beat Royal Challengers Bengaluru on 2016-05-29)",
+    "notes": ""
+  },
+  {
+    "id": "q02",
+    "category": "lookup",
+    "question": "Who was the player of the match in the 2019 IPL final?",
+    "gold_sql": "SELECT date, player_of_match, winner FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND SUBSTR(date, 1, 4) = '2019'",
+    "expected_answer": "JJ Bumrah (Mumbai Indians won the final on 2019-05-12)",
+    "notes": ""
+  },
+  {
+    "id": "q03",
+    "category": "aggregation",
+    "question": "How many runs has V Kohli scored in his IPL career?",
+    "gold_sql": "SELECT SUM(runs) AS runs, COUNT(*) AS innings FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE batter = 'V Kohli'",
+    "expected_answer": "9,354 runs in 275 innings",
+    "notes": "Covers 2008-2026, so it will change if more data is added."
+  },
+  {
+    "id": "q04",
+    "category": "aggregation",
+    "question": "How many sixes were hit in total in IPL 2023?",
+    "gold_sql": "SELECT SUM(sixes) AS sixes FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2023",
+    "expected_answer": "1,124",
+    "notes": "Tests the nanosecond match_date conversion."
+  },
+  {
+    "id": "q05",
+    "category": "ranking",
+    "question": "Who were the top 3 run scorers in IPL 2016?",
+    "gold_sql": "SELECT batter, SUM(runs) AS runs FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2016 GROUP BY batter ORDER BY runs DESC LIMIT 3",
+    "expected_answer": "V Kohli 973, DA Warner 848, AB de Villiers 687",
+    "notes": ""
+  },
+  {
+    "id": "q06",
+    "category": "ranking",
+    "question": "Which bowler has taken the most wickets in IPL history?",
+    "gold_sql": "SELECT bowler, SUM(wickets) AS wickets FROM `ipl-nao.ipl_db.ipl_bowler_match_stats` GROUP BY bowler ORDER BY wickets DESC LIMIT 3",
+    "expected_answer": "YS Chahal, 233 wickets (then B Kumar 227, SP Narine 210)",
+    "notes": "Covers 2008-2026."
+  },
+  {
+    "id": "q07",
+    "category": "join",
+    "question": "Who has scored the most runs at Wankhede Stadium?",
+    "gold_sql": "SELECT b.batter, SUM(b.runs) AS runs FROM `ipl-nao.ipl_db.ipl_batter_match_stats` b JOIN `ipl-nao.ipl_db.match_info_v2` m USING (match_id) WHERE m.venue LIKE '%Wankhede%' GROUP BY b.batter ORDER BY runs DESC LIMIT 3",
+    "expected_answer": "RG Sharma, 2,632 runs (then SA Yadav 1,556, KA Pollard 1,226)",
+    "notes": "Needs a join between player stats and match venue."
+  },
+  {
+    "id": "q08",
+    "category": "date/season",
+    "question": "How many matches were played in the first IPL season (2008)?",
+    "gold_sql": "SELECT COUNT(*) AS matches FROM `ipl-nao.ipl_db.match_info_v2` WHERE SUBSTR(date, 1, 4) = '2008'",
+    "expected_answer": "58",
+    "notes": "Trap: season is '2007/08' and season_start_year is 2007 for this season, but DATA_NOTES tells the agent to prefer season_start_year."
+  },
+  {
+    "id": "q09",
+    "category": "date/season",
+    "question": "Which team won the most matches in IPL 2020?",
+    "gold_sql": "SELECT winner, COUNT(*) AS wins FROM `ipl-nao.ipl_db.match_info_v2` WHERE SUBSTR(date, 1, 4) = '2020' AND winner IS NOT NULL GROUP BY winner ORDER BY wins DESC LIMIT 3",
+    "expected_answer": "Mumbai Indians, 11 wins",
+    "notes": "Season string is '2020/21' for this season."
+  },
+  {
+    "id": "q10",
+    "category": "unanswerable",
+    "question": "What was the crowd attendance at the 2019 IPL final?",
+    "gold_sql": null,
+    "expected_answer": "The agent should say the data doesn't include attendance figures.",
+    "notes": "No attendance column exists in any table."
+  }
+]

@@ -3,3 +3,4 @@
 .env
 .venv/
 .streamlit/secrets.toml
+!evals/**/*.json
