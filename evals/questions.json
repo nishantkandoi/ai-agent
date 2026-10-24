@@ -5,7 +5,8 @@
     "question": "Who won the IPL final in 2016?",
     "gold_sql": "SELECT date, winner, team1, team2 FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND SUBSTR(date, 1, 4) = '2016'",
     "expected_answer": "Sunrisers Hyderabad (beat Royal Challengers Bengaluru on 2016-05-29)",
-    "notes": ""
+    "notes": "",
+    "trap": ""
   },
   {
     "id": "q02",
@@ -13,7 +14,8 @@
     "question": "Who was the player of the match in the 2019 IPL final?",
     "gold_sql": "SELECT date, player_of_match, winner FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND SUBSTR(date, 1, 4) = '2019'",
     "expected_answer": "JJ Bumrah (Mumbai Indians won the final on 2019-05-12)",
-    "notes": ""
+    "notes": "",
+    "trap": ""
   },
   {
     "id": "q03",
@@ -21,7 +23,8 @@
     "question": "How many runs has V Kohli scored in his IPL career?",
     "gold_sql": "SELECT SUM(runs) AS runs, COUNT(*) AS innings FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE batter = 'V Kohli'",
     "expected_answer": "9,354 runs in 275 innings",
-    "notes": "Covers 2008-2026, so it will change if more data is added."
+    "notes": "Covers 2008-2026, so it will change if more data is added.",
+    "trap": ""
   },
   {
     "id": "q04",
@@ -29,7 +32,8 @@
     "question": "How many sixes were hit in total in IPL 2023?",
     "gold_sql": "SELECT SUM(sixes) AS sixes FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2023",
     "expected_answer": "1,124",
-    "notes": "Tests the nanosecond match_date conversion."
+    "notes": "Tests the nanosecond match_date conversion.",
+    "trap": ""
   },
   {
     "id": "q05",
@@ -37,7 +41,8 @@
     "question": "Who were the top 3 run scorers in IPL 2016?",
     "gold_sql": "SELECT batter, SUM(runs) AS runs FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2016 GROUP BY batter ORDER BY runs DESC LIMIT 3",
     "expected_answer": "V Kohli 973, DA Warner 848, AB de Villiers 687",
-    "notes": ""
+    "notes": "",
+    "trap": ""
   },
   {
     "id": "q06",
@@ -45,7 +50,8 @@
     "question": "Which bowler has taken the most wickets in IPL history?",
     "gold_sql": "SELECT bowler, SUM(wickets) AS wickets FROM `ipl-nao.ipl_db.ipl_bowler_match_stats` GROUP BY bowler ORDER BY wickets DESC LIMIT 3",
     "expected_answer": "YS Chahal, 233 wickets (then B Kumar 227, SP Narine 210)",
-    "notes": "Covers 2008-2026."
+    "notes": "Covers 2008-2026.",
+    "trap": ""
   },
   {
     "id": "q07",
@@ -53,7 +59,8 @@
     "question": "Who has scored the most runs at Wankhede Stadium?",
     "gold_sql": "SELECT b.batter, SUM(b.runs) AS runs FROM `ipl-nao.ipl_db.ipl_batter_match_stats` b JOIN `ipl-nao.ipl_db.match_info_v2` m USING (match_id) WHERE m.venue LIKE '%Wankhede%' GROUP BY b.batter ORDER BY runs DESC LIMIT 3",
     "expected_answer": "RG Sharma, 2,632 runs (then SA Yadav 1,556, KA Pollard 1,226)",
-    "notes": "Needs a join between player stats and match venue."
+    "notes": "Needs a join between player stats and match venue.",
+    "trap": ""
   },
   {
     "id": "q08",
@@ -61,7 +68,8 @@
     "question": "How many matches were played in the first IPL season (2008)?",
     "gold_sql": "SELECT COUNT(*) AS matches FROM `ipl-nao.ipl_db.match_info_v2` WHERE SUBSTR(date, 1, 4) = '2008'",
     "expected_answer": "58",
-    "notes": "Trap: season is '2007/08' and season_start_year is 2007 for this season, but DATA_NOTES tells the agent to prefer season_start_year."
+    "notes": "Trap: season is '2007/08' and season_start_year is 2007 for this season, but DATA_NOTES tells the agent to prefer season_start_year.",
+    "trap": ""
   },
   {
     "id": "q09",
@@ -69,7 +77,8 @@
     "question": "Which team won the most matches in IPL 2020?",
     "gold_sql": "SELECT winner, COUNT(*) AS wins FROM `ipl-nao.ipl_db.match_info_v2` WHERE SUBSTR(date, 1, 4) = '2020' AND winner IS NOT NULL GROUP BY winner ORDER BY wins DESC LIMIT 3",
     "expected_answer": "Mumbai Indians, 11 wins",
-    "notes": "Season string is '2020/21' for this season."
+    "notes": "Season string is '2020/21' for this season.",
+    "trap": ""
   },
   {
     "id": "q10",
@@ -77,6 +86,97 @@
     "question": "What was the crowd attendance at the 2019 IPL final?",
     "gold_sql": null,
     "expected_answer": "The agent should say the data doesn't include attendance figures.",
-    "notes": "No attendance column exists in any table."
+    "notes": "No attendance column exists in any table.",
+    "trap": ""
+  },
+  {
+    "id": "q11",
+    "category": "tricky",
+    "question": "Which batters have the highest career strike rate in the IPL (minimum 1000 runs)? Give the top 3.",
+    "gold_sql": "SELECT batter, SUM(runs) AS total_runs, SUM(balls_faced) AS balls, ROUND(100 * SUM(runs) / SUM(balls_faced), 2) AS strike_rate FROM `ipl-nao.ipl_db.ipl_batter_match_stats` GROUP BY batter HAVING SUM(runs) >= 1000 ORDER BY strike_rate DESC LIMIT 3",
+    "expected_answer": "V Suryavanshi 228.95, TH David 177.08, PD Salt 174.48",
+    "notes": "",
+    "trap": "Formula: career strike rate is total runs / total balls x 100. Averaging the per-innings strike_rate column puts H Klaasen at #2, which is wrong."
+  },
+  {
+    "id": "q12",
+    "category": "tricky",
+    "question": "Which team has won the most IPL titles?",
+    "gold_sql": "SELECT winner, COUNT(*) AS titles FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' GROUP BY winner ORDER BY titles DESC LIMIT 3",
+    "expected_answer": "Tie: Chennai Super Kings and Mumbai Indians, 5 titles each",
+    "notes": "",
+    "trap": "Tie: a LIMIT 1 query names only one team. Both must be mentioned."
+  },
+  {
+    "id": "q13",
+    "category": "tricky",
+    "question": "Who has the best IPL batting average (minimum 2000 runs)?",
+    "gold_sql": "SELECT batter, SUM(runs) AS total_runs, COUNTIF(dismissed) AS outs, ROUND(SUM(runs) / COUNTIF(dismissed), 2) AS batting_average FROM `ipl-nao.ipl_db.ipl_batter_match_stats` GROUP BY batter HAVING SUM(runs) >= 2000 ORDER BY batting_average DESC LIMIT 3",
+    "expected_answer": "B Sai Sudharsan, 49.31 (2,515 runs, 51 dismissals); then KL Rahul 47.28",
+    "notes": "",
+    "trap": "Formula: batting average is runs / times dismissed, not runs / innings."
+  },
+  {
+    "id": "q14",
+    "category": "tricky",
+    "question": "Which IPL teams have never won the title?",
+    "gold_sql": "WITH teams AS (SELECT team1 AS team FROM `ipl-nao.ipl_db.match_info_v2` UNION DISTINCT SELECT team2 FROM `ipl-nao.ipl_db.match_info_v2`), champs AS (SELECT DISTINCT winner FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND winner IS NOT NULL) SELECT team FROM teams WHERE team NOT IN (SELECT winner FROM champs) ORDER BY team",
+    "expected_answer": "Delhi Capitals, Punjab Kings, Lucknow Super Giants, and defunct Gujarat Lions, Kochi Tuskers Kerala, Pune Warriors, Rising Pune Supergiant",
+    "notes": "",
+    "trap": "Negation question. Must not list Deccan Chargers (won 2009). Mentioning only the active teams is acceptable if the answer is clearly limited to them."
+  },
+  {
+    "id": "q15",
+    "category": "tricky",
+    "question": "In what percentage of IPL matches did the toss winner also win the match?",
+    "gold_sql": "SELECT COUNT(*) AS decided, COUNTIF(toss_winner = winner) AS toss_winner_won, ROUND(100 * COUNTIF(toss_winner = winner) / COUNT(*), 1) AS pct FROM `ipl-nao.ipl_db.match_info_v2` WHERE winner IS NOT NULL",
+    "expected_answer": "51.4% (634 of 1,234 decided matches; 9 no-results excluded)",
+    "notes": "",
+    "trap": "Denominator: dividing by all 1,243 matches (including no-results) gives 51.0%, which is wrong."
+  },
+  {
+    "id": "q16",
+    "category": "tricky",
+    "question": "Who hit the fastest fifty in IPL 2024?",
+    "gold_sql": null,
+    "expected_answer": "The agent should say the data can't answer this: there is no ball-by-ball data, so it can't tell when a 50th run came.",
+    "notes": "",
+    "trap": "Looks answerable. The agent may present the highest strike-rate 50+ innings as the 'fastest fifty', which is wrong."
+  },
+  {
+    "id": "q17",
+    "category": "tricky",
+    "question": "How many IPL matches were decided using the Duckworth-Lewis method?",
+    "gold_sql": "SELECT COUNT(*) AS dl_matches FROM `ipl-nao.ipl_db.match_info_v2` WHERE method = 'D/L'",
+    "expected_answer": "23",
+    "notes": "",
+    "trap": "Column choice: it is method = 'D/L'. result = 'tie' (16) and 'no result' (9) are different things."
+  },
+  {
+    "id": "q18",
+    "category": "tricky",
+    "question": "How many runs did Rohit Sharma score in IPL 2013?",
+    "gold_sql": "SELECT batter, SUM(runs) AS runs FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE batter = 'RG Sharma' AND EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2013 GROUP BY batter",
+    "expected_answer": "538 (stored as 'RG Sharma')",
+    "notes": "",
+    "trap": "Name: LIKE '%Sharma%' also matches R Sharma, KV Sharma, MM Sharma and others; summing them gives 645, which is wrong."
+  },
+  {
+    "id": "q19",
+    "category": "tricky",
+    "question": "How many IPL titles did Delhi Daredevils win?",
+    "gold_sql": "SELECT COUNT(*) AS titles FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND winner = 'Delhi Capitals'",
+    "expected_answer": "0. Delhi Daredevils is stored under its current name, Delhi Capitals, which has never won a final.",
+    "notes": "",
+    "trap": "Renamed team: searching 'Daredevils' finds nothing. Saying 'no data' is wrong; the answer is 0."
+  },
+  {
+    "id": "q20",
+    "category": "tricky",
+    "question": "How many matches has MS Dhoni won as captain?",
+    "gold_sql": null,
+    "expected_answer": "The agent should say the data can't answer this: there is no captain information.",
+    "notes": "",
+    "trap": "Looks answerable. The agent may count CSK wins in matches Dhoni played and call them captaincy wins, which is wrong."
   }
 ]

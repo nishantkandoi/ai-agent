@@ -21,6 +21,7 @@ from datetime import datetime
 from pathlib import Path
 
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 
 import agent
@@ -28,6 +29,7 @@ import agent
 # Stronger than the agent's model. On this project it is only served from "global".
 JUDGE_MODEL = "gemini-3.1-pro-preview"
 JUDGE_LOCATION = "global"
+JUDGE_RETRIES = 4
 judge_client = genai.Client(vertexai=True, project=agent.PROJECT, location=JUDGE_LOCATION)
 EVAL_DIR = Path(__file__).parent / "evals"
 RESULTS_DIR = EVAL_DIR / "results"
@@ -43,6 +45,7 @@ Correct result from the database (JSON rows; null means no query exists):
 
 Reference answer written when the test was approved: {item['expected_answer']}
 Test notes: {item['notes'] or '(none)'}
+Known trap (a common wrong approach): {item.get('trap') or '(none)'}
 
 Agent's answer:
 {reply}
@@ -56,9 +59,17 @@ Grading rules:
 
 Reply with JSON: {{"correct": true or false, "reason": "one short sentence"}}"""
     start = time.perf_counter()
-    resp = judge_client.models.generate_content(
-        model=JUDGE_MODEL, contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json"))
+    for attempt in range(JUDGE_RETRIES):
+        try:
+            resp = judge_client.models.generate_content(
+                model=JUDGE_MODEL, contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json"))
+            break
+        except genai_errors.ClientError as e:
+            # The preview judge model is rate-limited; wait and retry on 429.
+            if e.code != 429 or attempt == JUDGE_RETRIES - 1:
+                raise
+            time.sleep(10 * (attempt + 1))
     verdict = json.loads(resp.text)
     usage = resp.usage_metadata
     return bool(verdict["correct"]), str(verdict.get("reason", "")), {
@@ -96,6 +107,7 @@ def summarize(results):
     return {
         "n": n,
         "accuracy": sum(r["correct"] for r in results) / n if n else 0,
+        "errors": sum(1 for r in results if r["error"]),
         "by_category": {c: round(sum(v) / len(v), 3) for c, v in by_cat.items()},
         "avg_time_s": round(sum(s["total_s"] for s in timed) / len(timed), 2) if timed else None,
         "avg_tokens": round(sum(s["tokens_total"] for s in timed) / len(timed)) if timed else None,
@@ -110,6 +122,8 @@ def print_report(results, summary):
         tok = f"{s['tokens_total']:,}" if s else "-"
         print(f"{r['id']:<5}{r['category']:<14}{'✓' if r['correct'] else '✗':<4}{t:>7}{tok:>9}  {r['reason']}")
     print(f"\nAccuracy: {summary['accuracy']:.0%} ({sum(r['correct'] for r in results)}/{summary['n']})")
+    if summary["errors"]:
+        print(f"  ⚠ {summary['errors']} question(s) errored (counted as wrong) - see reasons above")
     for c, a in summary["by_category"].items():
         print(f"  {c:<14}{a:.0%}")
     print(f"Avg per question: {summary['avg_time_s']}s, {summary['avg_tokens']} tokens")

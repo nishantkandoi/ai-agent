@@ -1,0 +1,794 @@
+{
+  "timestamp": "2026-10-24T11:25:15",
+  "commit": "5d86e96",
+  "agent_model": "gemini-2.5-flash",
+  "judge_model": "gemini-3.1-pro-preview",
+  "summary": {
+    "n": 20,
+    "accuracy": 0.9,
+    "errors": 0,
+    "by_category": {
+      "lookup": 1.0,
+      "aggregation": 1.0,
+      "ranking": 1.0,
+      "join": 1.0,
+      "date/season": 1.0,
+      "unanswerable": 1.0,
+      "tricky": 0.8
+    },
+    "avg_time_s": 9.37,
+    "avg_tokens": 2775
+  },
+  "results": [
+    {
+      "id": "q01",
+      "category": "lookup",
+      "question": "Who won the IPL final in 2016?",
+      "gold_sql": "SELECT date, winner, team1, team2 FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND SUBSTR(date, 1, 4) = '2016'",
+      "expected_answer": "Sunrisers Hyderabad (beat Royal Challengers Bengaluru on 2016-05-29)",
+      "expected_rows": [
+        {
+          "date": "2016-05-29",
+          "winner": "Sunrisers Hyderabad",
+          "team1": "Royal Challengers Bengaluru",
+          "team2": "Sunrisers Hyderabad"
+        }
+      ],
+      "reply": "Sunrisers Hyderabad",
+      "sql": "SELECT\n    t2.winner\n  FROM\n    `ipl-nao.ipl_db.match_info_v2` AS t2\n  WHERE t2.season = '2016'\n   AND t2.event_stage = 'Final'\n  LIMIT 1",
+      "stats": {
+        "tokens_in": 1333,
+        "tokens_out": 128,
+        "tokens_total": 2315,
+        "gemini_s": 7.538288250000001,
+        "bq_s": 0.7600997499999984,
+        "total_s": 8.300699583,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 0
+      },
+      "correct": true,
+      "reason": "The agent correctly identified Sunrisers Hyderabad as the winner of the 2016 IPL final, matching the database result.",
+      "judge": {
+        "judge_s": 4.0742724169999995,
+        "judge_tokens": 381
+      },
+      "error": null
+    },
+    {
+      "id": "q02",
+      "category": "lookup",
+      "question": "Who was the player of the match in the 2019 IPL final?",
+      "gold_sql": "SELECT date, player_of_match, winner FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND SUBSTR(date, 1, 4) = '2019'",
+      "expected_answer": "JJ Bumrah (Mumbai Indians won the final on 2019-05-12)",
+      "expected_rows": [
+        {
+          "date": "2019-05-12",
+          "player_of_match": "JJ Bumrah",
+          "winner": "Mumbai Indians"
+        }
+      ],
+      "reply": "JJ Bumrah",
+      "sql": "SELECT\n    t2.player_of_match\n  FROM\n    `ipl-nao.ipl_db.match_info_v2` AS t2\n  WHERE t2.season = '2019'\n   AND t2.event_stage = 'Final'\n  LIMIT 200",
+      "stats": {
+        "tokens_in": 1352,
+        "tokens_out": 129,
+        "tokens_total": 2078,
+        "gemini_s": 5.924552875,
+        "bq_s": 0.828186917,
+        "total_s": 6.752972541999998,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 0
+      },
+      "correct": true,
+      "reason": "The agent correctly identified JJ Bumrah as the player of the match, matching the database result.",
+      "judge": {
+        "judge_s": 4.097616416000001,
+        "judge_tokens": 452
+      },
+      "error": null
+    },
+    {
+      "id": "q03",
+      "category": "aggregation",
+      "question": "How many runs has V Kohli scored in his IPL career?",
+      "gold_sql": "SELECT SUM(runs) AS runs, COUNT(*) AS innings FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE batter = 'V Kohli'",
+      "expected_answer": "9,354 runs in 275 innings",
+      "expected_rows": [
+        {
+          "runs": 9354,
+          "innings": 275
+        }
+      ],
+      "reply": "V Kohli has scored 9354 runs in his IPL career.",
+      "sql": "SELECT\n    SUM(t1.runs) AS total_runs_scored\n  FROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS t1\n  WHERE t1.batter = 'V Kohli'",
+      "stats": {
+        "tokens_in": 1326,
+        "tokens_out": 118,
+        "tokens_total": 2427,
+        "gemini_s": 6.133696875000002,
+        "bq_s": 0.7071199999999997,
+        "total_s": 6.8410544999999985,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 0
+      },
+      "correct": true,
+      "reason": "The agent correctly provided the number of runs (9354) from the database.",
+      "judge": {
+        "judge_s": 3.5603083329999947,
+        "judge_tokens": 402
+      },
+      "error": null
+    },
+    {
+      "id": "q04",
+      "category": "aggregation",
+      "question": "How many sixes were hit in total in IPL 2023?",
+      "gold_sql": "SELECT SUM(sixes) AS sixes FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2023",
+      "expected_answer": "1,124",
+      "expected_rows": [
+        {
+          "sixes": 1124
+        }
+      ],
+      "reply": "1124",
+      "sql": "SELECT\n    SUM(t1.sixes) AS total_sixes_2023\n  FROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS t1\n  WHERE\n    EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(t1.match_date, 1000)))) = 2023\nLIMIT 200",
+      "stats": {
+        "tokens_in": 1375,
+        "tokens_out": 155,
+        "tokens_total": 2853,
+        "gemini_s": 6.875778667000006,
+        "bq_s": 0.7868479159999993,
+        "total_s": 7.663014334000003,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 300320
+      },
+      "correct": true,
+      "reason": "The agent correctly identified the total number of sixes hit in IPL 2023 as 1124, matching the database result.",
+      "judge": {
+        "judge_s": 17.5178485,
+        "judge_tokens": 321
+      },
+      "error": null
+    },
+    {
+      "id": "q05",
+      "category": "ranking",
+      "question": "Who were the top 3 run scorers in IPL 2016?",
+      "gold_sql": "SELECT batter, SUM(runs) AS runs FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2016 GROUP BY batter ORDER BY runs DESC LIMIT 3",
+      "expected_answer": "V Kohli 973, DA Warner 848, AB de Villiers 687",
+      "expected_rows": [
+        {
+          "batter": "V Kohli",
+          "runs": 973
+        },
+        {
+          "batter": "DA Warner",
+          "runs": 848
+        },
+        {
+          "batter": "AB de Villiers",
+          "runs": 687
+        }
+      ],
+      "reply": "The top 3 run scorers in IPL 2016 were V Kohli (973 runs), DA Warner (848 runs), and AB de Villiers (687 runs).",
+      "sql": "SELECT\n    t1.batter,\n    SUM(t1.runs) AS total_runs\n  FROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS t1\n  WHERE\n    EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(t1.match_date, 1000)))) = 2016\n  GROUP BY\n    t1.batter\n  ORDER BY\n    total_runs DESC\n  LIMIT 3",
+      "stats": {
+        "tokens_in": 1429,
+        "tokens_out": 207,
+        "tokens_total": 2235,
+        "gemini_s": 6.447012458000017,
+        "bq_s": 0.8603442080000008,
+        "total_s": 7.307619041999999,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 517650
+      },
+      "correct": true,
+      "reason": "The agent correctly identifies the top 3 run scorers and their exact run counts, perfectly matching the database result.",
+      "judge": {
+        "judge_s": 6.450533917000001,
+        "judge_tokens": 557
+      },
+      "error": null
+    },
+    {
+      "id": "q06",
+      "category": "ranking",
+      "question": "Which bowler has taken the most wickets in IPL history?",
+      "gold_sql": "SELECT bowler, SUM(wickets) AS wickets FROM `ipl-nao.ipl_db.ipl_bowler_match_stats` GROUP BY bowler ORDER BY wickets DESC LIMIT 3",
+      "expected_answer": "YS Chahal, 233 wickets (then B Kumar 227, SP Narine 210)",
+      "expected_rows": [
+        {
+          "bowler": "YS Chahal",
+          "wickets": 233
+        },
+        {
+          "bowler": "B Kumar",
+          "wickets": 227
+        },
+        {
+          "bowler": "SP Narine",
+          "wickets": 210
+        }
+      ],
+      "reply": "YS Chahal has taken the most wickets in IPL history with 233 wickets.",
+      "sql": "SELECT\n    t1.player_name,\n    SUM(t2.wickets) AS total_wickets\nFROM\n    `ipl-nao.ipl_db.ipl_players` AS t1\nINNER JOIN\n    `ipl-nao.ipl_db.ipl_bowler_match_stats` AS t2\n    ON t1.player_id = t2.player_id\nGROUP BY\n    t1.player_name\nORDER BY\n    total_wickets DESC\nLIMIT 1",
+      "stats": {
+        "tokens_in": 1392,
+        "tokens_out": 186,
+        "tokens_total": 2418,
+        "gemini_s": 6.809932000000018,
+        "bq_s": 0.9152439589999943,
+        "total_s": 7.725475500000002,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 282900
+      },
+      "correct": true,
+      "reason": "The agent correctly identifies YS Chahal with 233 wickets, matching the database result.",
+      "judge": {
+        "judge_s": 5.545287707999989,
+        "judge_tokens": 491
+      },
+      "error": null
+    },
+    {
+      "id": "q07",
+      "category": "join",
+      "question": "Who has scored the most runs at Wankhede Stadium?",
+      "gold_sql": "SELECT b.batter, SUM(b.runs) AS runs FROM `ipl-nao.ipl_db.ipl_batter_match_stats` b JOIN `ipl-nao.ipl_db.match_info_v2` m USING (match_id) WHERE m.venue LIKE '%Wankhede%' GROUP BY b.batter ORDER BY runs DESC LIMIT 3",
+      "expected_answer": "RG Sharma, 2,632 runs (then SA Yadav 1,556, KA Pollard 1,226)",
+      "expected_rows": [
+        {
+          "batter": "RG Sharma",
+          "runs": 2632
+        },
+        {
+          "batter": "SA Yadav",
+          "runs": 1556
+        },
+        {
+          "batter": "KA Pollard",
+          "runs": 1226
+        }
+      ],
+      "reply": "RG Sharma has scored the most runs at Wankhede Stadium with 2632 runs.",
+      "sql": "SELECT\n    t1.batter,\n    SUM(t1.runs) AS total_runs\n  FROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS t1\n    INNER JOIN `ipl-nao.ipl_db.match_info_v2` AS t2 ON t1.match_id = t2.match_id\n  WHERE t2.venue = 'Wankhede Stadium'\n  GROUP BY\n    t1.batter\n  ORDER BY\n    total_runs DESC\n  LIMIT 1",
+      "stats": {
+        "tokens_in": 1401,
+        "tokens_out": 196,
+        "tokens_total": 2188,
+        "gemini_s": 5.619675833000002,
+        "bq_s": 0.8597277089999977,
+        "total_s": 6.4797354170000006,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 561536
+      },
+      "correct": true,
+      "reason": "The agent correctly identified RG Sharma as the top run-scorer at Wankhede Stadium with the correct total of 2632 runs.",
+      "judge": {
+        "judge_s": 7.14608475,
+        "judge_tokens": 527
+      },
+      "error": null
+    },
+    {
+      "id": "q08",
+      "category": "date/season",
+      "question": "How many matches were played in the first IPL season (2008)?",
+      "gold_sql": "SELECT COUNT(*) AS matches FROM `ipl-nao.ipl_db.match_info_v2` WHERE SUBSTR(date, 1, 4) = '2008'",
+      "expected_answer": "58",
+      "expected_rows": [
+        {
+          "matches": 58
+        }
+      ],
+      "reply": "58",
+      "sql": "SELECT\n    COUNT(DISTINCT t2.match_id)\n  FROM\n    `ipl-nao.ipl_db.match_info_v2` AS t2\n  WHERE\n    SUBSTR(t2.date, 1, 4) = '2008'\n  LIMIT 200",
+      "stats": {
+        "tokens_in": 1348,
+        "tokens_out": 136,
+        "tokens_total": 1928,
+        "gemini_s": 5.006395583,
+        "bq_s": 0.7001519159999958,
+        "total_s": 5.706951458000006,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 24860
+      },
+      "correct": true,
+      "reason": "The agent provided the exact correct number of matches (58) as per the database result.",
+      "judge": {
+        "judge_s": 3.3151551670000003,
+        "judge_tokens": 362
+      },
+      "error": null
+    },
+    {
+      "id": "q09",
+      "category": "date/season",
+      "question": "Which team won the most matches in IPL 2020?",
+      "gold_sql": "SELECT winner, COUNT(*) AS wins FROM `ipl-nao.ipl_db.match_info_v2` WHERE SUBSTR(date, 1, 4) = '2020' AND winner IS NOT NULL GROUP BY winner ORDER BY wins DESC LIMIT 3",
+      "expected_answer": "Mumbai Indians, 11 wins",
+      "expected_rows": [
+        {
+          "winner": "Mumbai Indians",
+          "wins": 11
+        },
+        {
+          "winner": "Delhi Capitals",
+          "wins": 9
+        },
+        {
+          "winner": "Sunrisers Hyderabad",
+          "wins": 8
+        }
+      ],
+      "reply": "Mumbai Indians won the most matches in IPL 2020 with 11 wins.",
+      "sql": "SELECT\n    t2.winner,\n    COUNT(*) AS total_wins\n  FROM\n    `ipl-nao.ipl_db.match_info_v2` AS t2\n  WHERE\n    SUBSTR(t2.date, 1, 4) = '2020'\n  GROUP BY\n    t2.winner\nORDER BY\n  total_wins DESC\nLIMIT 1",
+      "stats": {
+        "tokens_in": 1369,
+        "tokens_out": 170,
+        "tokens_total": 2080,
+        "gemini_s": 5.941787707999993,
+        "bq_s": 1.0407393330000048,
+        "total_s": 6.982869375000007,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 39150
+      },
+      "correct": true,
+      "reason": "The agent correctly identified Mumbai Indians as the team with the most wins (11), which matches the database results.",
+      "judge": {
+        "judge_s": 4.687126042000003,
+        "judge_tokens": 487
+      },
+      "error": null
+    },
+    {
+      "id": "q10",
+      "category": "unanswerable",
+      "question": "What was the crowd attendance at the 2019 IPL final?",
+      "gold_sql": null,
+      "expected_answer": "The agent should say the data doesn't include attendance figures.",
+      "expected_rows": null,
+      "reply": "Crowd attendance data is not available in the provided tables.",
+      "sql": "-- The provided table schemas do not contain any information about crowd attendance.\n-- Therefore, it is not possible to answer this question with the available data.\nSELECT\n    'Crowd attendance data is not available in the provided tables.' AS information_unavailable\nFROM\n    `ipl-nao.ipl_db.match_info_v2`\nLIMIT 1",
+      "stats": {
+        "tokens_in": 1361,
+        "tokens_out": 142,
+        "tokens_total": 2462,
+        "gemini_s": 8.01747124900001,
+        "bq_s": 0.7955868749999979,
+        "total_s": 8.813344999999998,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 0
+      },
+      "correct": true,
+      "reason": "The agent correctly stated that the data does not contain crowd attendance figures.",
+      "judge": {
+        "judge_s": 3.4289754579999965,
+        "judge_tokens": 357
+      },
+      "error": null
+    },
+    {
+      "id": "q11",
+      "category": "tricky",
+      "question": "Which batters have the highest career strike rate in the IPL (minimum 1000 runs)? Give the top 3.",
+      "gold_sql": "SELECT batter, SUM(runs) AS total_runs, SUM(balls_faced) AS balls, ROUND(100 * SUM(runs) / SUM(balls_faced), 2) AS strike_rate FROM `ipl-nao.ipl_db.ipl_batter_match_stats` GROUP BY batter HAVING SUM(runs) >= 1000 ORDER BY strike_rate DESC LIMIT 3",
+      "expected_answer": "V Suryavanshi 228.95, TH David 177.08, PD Salt 174.48",
+      "expected_rows": [
+        {
+          "batter": "V Suryavanshi",
+          "total_runs": 1028,
+          "balls": 449,
+          "strike_rate": 228.95
+        },
+        {
+          "batter": "TH David",
+          "total_runs": 1151,
+          "balls": 650,
+          "strike_rate": 177.08
+        },
+        {
+          "batter": "PD Salt",
+          "total_runs": 1258,
+          "balls": 721,
+          "strike_rate": 174.48
+        }
+      ],
+      "reply": "The top 3 batters with the highest career strike rate (minimum 1000 runs) in the IPL are:\n1.  V Suryavanshi: 228.95\n2.  TH David: 177.08\n3.  PD Salt: 174.48",
+      "sql": "SELECT\n    t1.batter,\n    SUM(t1.runs) AS total_runs,\n    SUM(t1.balls_faced) AS total_balls_faced,\n    (SUM(t1.runs) * 100.0 / SUM(t1.balls_faced)) AS career_strike_rate\nFROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS t1\nGROUP BY\n    t1.batter\nHAVING\n    SUM(t1.runs) >= 1000\n    AND SUM(t1.balls_faced) > 0 -- Ensure no division by zero if a player somehow has runs but 0 balls faced (unlikely but good practice)\nORDER BY\n    career_strike_rate DESC\nLIMIT 3",
+      "stats": {
+        "tokens_in": 1638,
+        "tokens_out": 301,
+        "tokens_total": 2739,
+        "gemini_s": 6.09343691600003,
+        "bq_s": 0.7671780829999761,
+        "total_s": 6.8609784170000125,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 517650
+      },
+      "correct": true,
+      "reason": "The agent correctly identifies the top 3 batters and their career strike rates.",
+      "judge": {
+        "judge_s": 4.634944499999989,
+        "judge_tokens": 726
+      },
+      "error": null
+    },
+    {
+      "id": "q12",
+      "category": "tricky",
+      "question": "Which team has won the most IPL titles?",
+      "gold_sql": "SELECT winner, COUNT(*) AS titles FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' GROUP BY winner ORDER BY titles DESC LIMIT 3",
+      "expected_answer": "Tie: Chennai Super Kings and Mumbai Indians, 5 titles each",
+      "expected_rows": [
+        {
+          "winner": "Mumbai Indians",
+          "titles": 5
+        },
+        {
+          "winner": "Chennai Super Kings",
+          "titles": 5
+        },
+        {
+          "winner": "Kolkata Knight Riders",
+          "titles": 3
+        }
+      ],
+      "reply": "Chennai Super Kings has won the most IPL titles with 5 wins.",
+      "sql": "SELECT\n    t1.winner AS team_name,\n    COUNT(t1.match_id) AS titles_won\n  FROM\n    `ipl-nao.ipl_db.match_info_v2` AS t1\n  WHERE t1.event_stage = 'Final'\n  GROUP BY 1\nORDER BY\n  titles_won DESC\nLIMIT 1",
+      "stats": {
+        "tokens_in": 1355,
+        "tokens_out": 155,
+        "tokens_total": 2706,
+        "gemini_s": 10.181818375000006,
+        "bq_s": 0.765710791999993,
+        "total_s": 10.947785624999995,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 35032
+      },
+      "correct": false,
+      "reason": "The agent only mentioned Chennai Super Kings, but failed to mention that Mumbai Indians is tied for the most IPL titles.",
+      "judge": {
+        "judge_s": 3.579593625000001,
+        "judge_tokens": 481
+      },
+      "error": null
+    },
+    {
+      "id": "q13",
+      "category": "tricky",
+      "question": "Who has the best IPL batting average (minimum 2000 runs)?",
+      "gold_sql": "SELECT batter, SUM(runs) AS total_runs, COUNTIF(dismissed) AS outs, ROUND(SUM(runs) / COUNTIF(dismissed), 2) AS batting_average FROM `ipl-nao.ipl_db.ipl_batter_match_stats` GROUP BY batter HAVING SUM(runs) >= 2000 ORDER BY batting_average DESC LIMIT 3",
+      "expected_answer": "B Sai Sudharsan, 49.31 (2,515 runs, 51 dismissals); then KL Rahul 47.28",
+      "expected_rows": [
+        {
+          "batter": "B Sai Sudharsan",
+          "total_runs": 2515,
+          "outs": 51,
+          "batting_average": 49.31
+        },
+        {
+          "batter": "KL Rahul",
+          "total_runs": 5815,
+          "outs": 123,
+          "batting_average": 47.28
+        },
+        {
+          "batter": "H Klaasen",
+          "total_runs": 2104,
+          "outs": 49,
+          "batting_average": 42.94
+        }
+      ],
+      "reply": "B Sai Sudharsan has the best IPL batting average of 49.31 (with a minimum of 2000 runs).",
+      "sql": "SELECT\n    t1.batter,\n    SUM(t1.runs) AS total_runs,\n    SUM(CASE WHEN t1.dismissed THEN 1 ELSE 0 END) AS total_dismissals,\n    SAFE_DIVIDE(SUM(t1.runs), SUM(CASE WHEN t1.dismissed THEN 1 ELSE 0 END)) AS batting_average\nFROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS t1\nGROUP BY\n    t1.batter\nHAVING\n    SUM(t1.runs) >= 2000\nORDER BY\n    batting_average DESC\nLIMIT 1",
+      "stats": {
+        "tokens_in": 1472,
+        "tokens_out": 227,
+        "tokens_total": 2651,
+        "gemini_s": 5.975128957999999,
+        "bq_s": 0.6635061249999978,
+        "total_s": 6.638944000000009,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 386260
+      },
+      "correct": true,
+      "reason": "The agent correctly identified B Sai Sudharsan and his batting average of 49.31, which matches the database results.",
+      "judge": {
+        "judge_s": 4.012929917000008,
+        "judge_tokens": 592
+      },
+      "error": null
+    },
+    {
+      "id": "q14",
+      "category": "tricky",
+      "question": "Which IPL teams have never won the title?",
+      "gold_sql": "WITH teams AS (SELECT team1 AS team FROM `ipl-nao.ipl_db.match_info_v2` UNION DISTINCT SELECT team2 FROM `ipl-nao.ipl_db.match_info_v2`), champs AS (SELECT DISTINCT winner FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND winner IS NOT NULL) SELECT team FROM teams WHERE team NOT IN (SELECT winner FROM champs) ORDER BY team",
+      "expected_answer": "Delhi Capitals, Punjab Kings, Lucknow Super Giants, and defunct Gujarat Lions, Kochi Tuskers Kerala, Pune Warriors, Rising Pune Supergiant",
+      "expected_rows": [
+        {
+          "team": "Delhi Capitals"
+        },
+        {
+          "team": "Gujarat Lions"
+        },
+        {
+          "team": "Kochi Tuskers Kerala"
+        },
+        {
+          "team": "Lucknow Super Giants"
+        },
+        {
+          "team": "Pune Warriors"
+        },
+        {
+          "team": "Punjab Kings"
+        },
+        {
+          "team": "Rising Pune Supergiant"
+        }
+      ],
+      "reply": "The IPL teams that have never won the title are: Delhi Capitals, Gujarat Lions, Kochi Tuskers Kerala, Lucknow Super Giants, Pune Warriors, Punjab Kings, and Rising Pune Supergiant.",
+      "sql": "SELECT\n    team_name\n  FROM\n    (\n      SELECT DISTINCT\n          team1 AS team_name\n        FROM\n          `ipl-nao.ipl_db.match_info_v2`\n      UNION DISTINCT\n      SELECT DISTINCT\n          team2 AS team_name\n        FROM\n          `ipl-nao.ipl_db.match_info_v2`\n    ) AS all_teams\nWHERE\n  team_name NOT IN (\n    SELECT DISTINCT\n        winner\n      FROM\n        `ipl-nao.ipl_db.match_info_v2`\n      WHERE\n        event_stage = 'Final'\n        AND winner IS NOT NULL\n  )\nORDER BY\n  team_name\nLIMIT 200",
+      "stats": {
+        "tokens_in": 1491,
+        "tokens_out": 255,
+        "tokens_total": 2275,
+        "gemini_s": 9.151620208000026,
+        "bq_s": 0.7198086659999774,
+        "total_s": 9.871673750000014,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 73614
+      },
+      "correct": true,
+      "reason": "The agent correctly listed all the IPL teams that have never won the title, exactly matching the database results.",
+      "judge": {
+        "judge_s": 3.7791062080000017,
+        "judge_tokens": 520
+      },
+      "error": null
+    },
+    {
+      "id": "q15",
+      "category": "tricky",
+      "question": "In what percentage of IPL matches did the toss winner also win the match?",
+      "gold_sql": "SELECT COUNT(*) AS decided, COUNTIF(toss_winner = winner) AS toss_winner_won, ROUND(100 * COUNTIF(toss_winner = winner) / COUNT(*), 1) AS pct FROM `ipl-nao.ipl_db.match_info_v2` WHERE winner IS NOT NULL",
+      "expected_answer": "51.4% (634 of 1,234 decided matches; 9 no-results excluded)",
+      "expected_rows": [
+        {
+          "decided": 1234,
+          "toss_winner_won": 634,
+          "pct": 51.4
+        }
+      ],
+      "reply": "In 51.38% of IPL matches, the toss winner also won the match.",
+      "sql": "SELECT\n    SAFE_DIVIDE(\n        COUNTIF(t1.toss_winner = t1.winner),\n        COUNT(t1.match_id)\n    ) * 100 AS percentage_toss_winner_won_match\nFROM\n    `ipl-nao.ipl_db.match_info_v2` AS t1\nWHERE\n    t1.winner IS NOT NULL\n    AND t1.toss_winner IS NOT NULL\nLIMIT 200",
+      "stats": {
+        "tokens_in": 1405,
+        "tokens_out": 195,
+        "tokens_total": 3497,
+        "gemini_s": 11.214695290999998,
+        "bq_s": 0.6617428329999768,
+        "total_s": 11.876679166999992,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 58300
+      },
+      "correct": true,
+      "reason": "The agent correctly reported the percentage (51.38%), which matches the database result of 51.4% with a minor rounding difference.",
+      "judge": {
+        "judge_s": 4.739499082999998,
+        "judge_tokens": 569
+      },
+      "error": null
+    },
+    {
+      "id": "q16",
+      "category": "tricky",
+      "question": "Who hit the fastest fifty in IPL 2024?",
+      "gold_sql": null,
+      "expected_answer": "The agent should say the data can't answer this: there is no ball-by-ball data, so it can't tell when a 50th run came.",
+      "expected_rows": null,
+      "reply": "J Fraser-McGurk",
+      "sql": "SELECT\n    p.player_name,\n    bs.balls_faced AS balls_to_reach_50_or_more_runs\nFROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS bs\nJOIN\n    `ipl-nao.ipl_db.ipl_players` AS p\nON\n    bs.player_id = p.player_id\nWHERE\n    bs.season = '2024'\n    AND bs.runs >= 50\nORDER BY\n    bs.balls_faced ASC,\n    bs.runs DESC\nLIMIT 1",
+      "stats": {
+        "tokens_in": 1429,
+        "tokens_out": 195,
+        "tokens_total": 6295,
+        "gemini_s": 25.423428458000018,
+        "bq_s": 0.7163986250000107,
+        "total_s": 26.140059084,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 626545
+      },
+      "correct": false,
+      "reason": "The agent provided a name instead of stating that the data cannot answer the question due to the lack of ball-by-ball data.",
+      "judge": {
+        "judge_s": 3.465122750000006,
+        "judge_tokens": 406
+      },
+      "error": null
+    },
+    {
+      "id": "q17",
+      "category": "tricky",
+      "question": "How many IPL matches were decided using the Duckworth-Lewis method?",
+      "gold_sql": "SELECT COUNT(*) AS dl_matches FROM `ipl-nao.ipl_db.match_info_v2` WHERE method = 'D/L'",
+      "expected_answer": "23",
+      "expected_rows": [
+        {
+          "dl_matches": 23
+        }
+      ],
+      "reply": "23 IPL matches were decided using the Duckworth-Lewis method.",
+      "sql": "SELECT\n    COUNT(DISTINCT t2.match_id)\n  FROM\n    `ipl-nao.ipl_db.match_info_v2` AS t2\n  WHERE\n    t2.method = 'D/L'\n  LIMIT 200",
+      "stats": {
+        "tokens_in": 1331,
+        "tokens_out": 132,
+        "tokens_total": 2041,
+        "gemini_s": 4.624998584000025,
+        "bq_s": 0.689427333999987,
+        "total_s": 5.314704541999987,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 10059
+      },
+      "correct": true,
+      "reason": "The agent correctly states that 23 IPL matches were decided using the Duckworth-Lewis method, matching the database result.",
+      "judge": {
+        "judge_s": 3.828778333999992,
+        "judge_tokens": 378
+      },
+      "error": null
+    },
+    {
+      "id": "q18",
+      "category": "tricky",
+      "question": "How many runs did Rohit Sharma score in IPL 2013?",
+      "gold_sql": "SELECT batter, SUM(runs) AS runs FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE batter = 'RG Sharma' AND EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2013 GROUP BY batter",
+      "expected_answer": "538 (stored as 'RG Sharma')",
+      "expected_rows": [
+        {
+          "batter": "RG Sharma",
+          "runs": 538
+        }
+      ],
+      "reply": "Rohit Sharma scored 538 runs in IPL 2013.",
+      "sql": "SELECT\n    SUM(t1.runs) AS total_runs_2013\n  FROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS t1\n  WHERE t1.batter = 'RG Sharma'\n   AND t1.season = '2013'\n  LIMIT 200",
+      "stats": {
+        "tokens_in": 1358,
+        "tokens_out": 155,
+        "tokens_total": 2666,
+        "gemini_s": 6.722324458999992,
+        "bq_s": 0.733851125000001,
+        "total_s": 7.456436916999991,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 488111
+      },
+      "correct": true,
+      "reason": "The agent correctly stated that Rohit Sharma scored 538 runs, which matches the database result.",
+      "judge": {
+        "judge_s": 3.6151687909999737,
+        "judge_tokens": 419
+      },
+      "error": null
+    },
+    {
+      "id": "q19",
+      "category": "tricky",
+      "question": "How many IPL titles did Delhi Daredevils win?",
+      "gold_sql": "SELECT COUNT(*) AS titles FROM `ipl-nao.ipl_db.match_info_v2` WHERE event_stage = 'Final' AND winner = 'Delhi Capitals'",
+      "expected_answer": "0. Delhi Daredevils is stored under its current name, Delhi Capitals, which has never won a final.",
+      "expected_rows": [
+        {
+          "titles": 0
+        }
+      ],
+      "reply": "0",
+      "sql": "SELECT\n    COUNT(DISTINCT t2.season)\n  FROM\n    `ipl-nao.ipl_db.match_info_v2` AS t2\n  WHERE t2.event_stage = 'Final'\n   AND t2.winner = 'Delhi Capitals'",
+      "stats": {
+        "tokens_in": 1327,
+        "tokens_out": 111,
+        "tokens_total": 2720,
+        "gemini_s": 10.465368582999986,
+        "bq_s": 0.6709777919999738,
+        "total_s": 11.136623541999995,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 33080
+      },
+      "correct": true,
+      "reason": "The agent correctly answered 0, matching the database result.",
+      "judge": {
+        "judge_s": 4.525114458999951,
+        "judge_tokens": 359
+      },
+      "error": null
+    },
+    {
+      "id": "q20",
+      "category": "tricky",
+      "question": "How many matches has MS Dhoni won as captain?",
+      "gold_sql": null,
+      "expected_answer": "The agent should say the data can't answer this: there is no captain information.",
+      "expected_rows": null,
+      "reply": "The provided result indicates that MS Dhoni's team won 127 matches in which he played, but it does not specify how many of these he won as captain.",
+      "sql": "SELECT\n    COUNT(DISTINCT t1.match_id)\nFROM\n    `ipl-nao.ipl_db.ipl_batter_match_stats` AS t1\nJOIN\n    `ipl-nao.ipl_db.ipl_players` AS t2\nON\n    t1.player_id = t2.player_id\nJOIN\n    `ipl-nao.ipl_db.match_info_v2` AS t3\nON\n    t1.match_id = t3.match_id\nWHERE\n    t2.player_name = 'MS Dhoni'\n    AND t1.team = t3.winner\nLIMIT 200",
+      "stats": {
+        "tokens_in": 1416,
+        "tokens_out": 236,
+        "tokens_total": 4920,
+        "gemini_s": 17.89943550000004,
+        "bq_s": 0.7408834999999954,
+        "total_s": 18.640608749999956,
+        "gemini_calls": 2,
+        "dry_runs": 1,
+        "queries": 1,
+        "retries": 0,
+        "bytes": 755016
+      },
+      "correct": true,
+      "reason": "The agent correctly identified that the data does not provide captaincy information, successfully avoiding the known trap.",
+      "judge": {
+        "judge_s": 10.458828583000013,
+        "judge_tokens": 1139
+      },
+      "error": null
+    }
+  ]
+}
