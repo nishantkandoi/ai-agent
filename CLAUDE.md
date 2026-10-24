@@ -43,8 +43,11 @@ newer than 3.9, such as `match` or `X | Y` type unions.
   3. `run_query`: a dry run that rejects anything over `MAX_BYTES` (100 MB), then a real
      run with `maximum_bytes_billed`, keeping up to `MAX_ROWS` rows.
   4. On any error, the error goes back to Gemini to fix the SQL, up to `MAX_ATTEMPTS` (3).
-  5. A second Gemini call answers using only the rows and appends a `FOLLOW-UPS:` line
-     with 3 questions, which `split_followups` parses out.
+  5. A second Gemini call (which also gets `DATA_NOTES`) answers using only the rows and
+     appends a `FOLLOW-UPS:` line with 3 questions, which `split_followups` parses out.
+- Prompt rules that came from eval failures: keep ties with `RANK()` instead of
+  `LIMIT 1`, and return `SELECT 'CANNOT_ANSWER' ...` rather than a stand-in metric when
+  the data can't measure the question. Re-run `eval.py` after any prompt change.
 - `answer` returns `(reply, sql, followups)` and fills in a `stats` dict from
   `new_stats()` with tokens, Gemini/BigQuery time, call counts, retries and bytes. The
   caller sets `total_s`. `format_stats` renders it for the terminal, and `app.py` renders

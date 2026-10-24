@@ -144,6 +144,12 @@ Recent conversation (for follow-up questions):
 
 Rules: one read-only SELECT (WITH allowed), fully qualified table names,
 LIMIT results to at most {MAX_ROWS} rows, return only the SQL in a ```sql block.
+- For "most / top / best / highest" questions, never cut off ties: rank with RANK()
+  and keep every row tied at the cutoff (e.g. QUALIFY RANK() OVER (...) <= 1).
+- If these tables cannot actually measure what is asked (e.g. it needs ball-by-ball,
+  over-by-over, captaincy, fielding or auction data), do NOT substitute a related
+  metric. Instead return exactly:
+  SELECT 'CANNOT_ANSWER' AS status, '<what data is missing>' AS reason
 
 Question: {question}"""
 
@@ -164,6 +170,8 @@ Question: {question}"""
         return f"Sorry, I couldn't answer that. Last error: {error}", sql, []
 
     reply = ask_model(f"""Question: {question}
+Data notes (how the warehouse stores things):
+{DATA_NOTES}
 SQL used:
 {sql}
 Result rows (JSON, up to {MAX_ROWS}):
@@ -171,6 +179,8 @@ Result rows (JSON, up to {MAX_ROWS}):
 
 Answer the question concisely and directly from these results only. If the result
 is empty or doesn't answer the question, say so. Don't invent numbers.
+If several rows tie for the answer, name all of them and say it's a tie.
+If the result has status CANNOT_ANSWER, explain that the data can't answer this and why.
 
 Then, on its own line, write FOLLOW-UPS: followed by 3 short, related follow-up
 questions (one per line) that could be answered from these tables:

@@ -2,3 +2,5 @@ timestamp,commit,n,accuracy,by_category,avg_time_s,avg_tokens,results_file
 2026-10-24T10:59:07,1c7f0fa,10,0.9,"{""lookup"": 1.0, ""aggregation"": 1.0, ""ranking"": 1.0, ""join"": 1.0, ""date/season"": 0.5, ""unanswerable"": 1.0}",6.97,2259,2026-10-24_1059.json
 2026-10-24T11:04:59,e0ea730,10,1.0,"{""lookup"": 1.0, ""aggregation"": 1.0, ""ranking"": 1.0, ""join"": 1.0, ""date/season"": 1.0, ""unanswerable"": 1.0}",8.7,2572,2026-10-24_1104.json
 2026-10-24T11:25:15,5d86e96,20,0.9,"{""lookup"": 1.0, ""aggregation"": 1.0, ""ranking"": 1.0, ""join"": 1.0, ""date/season"": 1.0, ""unanswerable"": 1.0, ""tricky"": 0.8}",9.37,2775,2026-10-24_1125.json
+2026-10-24T11:33:18,35b12a2,20,0.95,"{""lookup"": 1.0, ""aggregation"": 1.0, ""ranking"": 1.0, ""join"": 1.0, ""date/season"": 1.0, ""unanswerable"": 1.0, ""tricky"": 0.9}",8.69,2707,2026-10-24_1133.json
+2026-10-24T11:39:39,35b12a2,20,1.0,"{""lookup"": 1.0, ""aggregation"": 1.0, ""ranking"": 1.0, ""join"": 1.0, ""date/season"": 1.0, ""unanswerable"": 1.0, ""tricky"": 1.0}",8.68,2984,2026-10-24_1139.json
