@@ -50,6 +50,22 @@ the SQL in an expandable section, and the follow-up questions as clickable butto
 .venv/bin/streamlit run app.py   # then open http://localhost:8501
 ```
 
+### Evaluation
+
+`eval.py` checks the agent against 10 approved test questions in `evals/questions.json`.
+Each one has a correct ("gold") SQL query and the answer it returned when the test was
+approved. For each question, the eval runs the gold SQL on the live data, asks the agent,
+and has a judge model (`gemini-3.1-pro-preview`) decide whether the agent's answer matches.
+
+```bash
+.venv/bin/python eval.py              # all questions
+.venv/bin/python eval.py --only q01,q08
+```
+
+It prints accuracy overall and by category, plus average time and tokens. Each run is saved
+to `evals/results/` as a dated JSON file (every answer, SQL query and verdict), and
+`evals/results/history.csv` gets one line per run so you can compare runs.
+
 ### Deploying to Streamlit Community Cloud
 
 1. At [share.streamlit.io](https://share.streamlit.io), sign in with GitHub and create an app

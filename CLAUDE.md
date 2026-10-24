@@ -16,10 +16,16 @@ Streamlit web UI (`app.py`).
 export GOOGLE_APPLICATION_CREDENTIALS=/Users/nishant/credentials/workshop_oct2/.local/workshop-user-key.json
 .venv/bin/python agent.py          # terminal chat ('sql' = last query, 'exit' = quit)
 .venv/bin/streamlit run app.py     # web UI at http://localhost:8501
-.venv/bin/python -m py_compile agent.py app.py   # quick syntax check
+.venv/bin/python -m py_compile agent.py app.py eval.py   # quick syntax check
+.venv/bin/python eval.py [--only q01,q08]   # accuracy eval (calls Gemini + BigQuery)
 ```
 
-There are no tests, linter or build step. The venv is Python 3.9, so avoid syntax that is
+There are no unit tests, linter or build step. `eval.py` is the accuracy check. It runs
+the questions in `evals/questions.json` through `agent.answer()`, compares each answer to
+the live result of the question's `gold_sql` using a judge model
+(`gemini-3.1-pro-preview`, which this project can only reach in location `global`), and
+saves each run to `evals/results/` (a dated JSON file plus `history.csv`). Change the
+answer key only with the user's review. The venv is Python 3.9, so avoid syntax that is
 newer than 3.9, such as `match` or `X | Y` type unions.
 
 ## Architecture
