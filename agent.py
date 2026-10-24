@@ -33,8 +33,11 @@ DATA_NOTES = """
 - match_date in ipl_batter_match_stats / ipl_bowler_match_stats is INTEGER epoch
   NANOSECONDS: use DATE(TIMESTAMP_MICROS(DIV(match_date, 1000))).
 - season is a STRING with irregular values: '2007/08' (= 2008), '2009', '2009/10' (= 2010),
-  '2011'..'2019', '2020/21' (= 2020), '2021'..'2026'. For year filters prefer
-  match_info_v2.season_start_year or EXTRACT(YEAR FROM the match date).
+  '2011'..'2019', '2020/21' (= 2020), '2021'..'2026'. Each IPL season sits within one
+  calendar year, so for year filters use the year of the match date
+  (SUBSTR(match_info_v2.date, 1, 4) or EXTRACT(YEAR FROM ...)).
+- Do NOT use match_info_v2.season_start_year for year filters: it is 2007 for the 2008
+  season and 2009 for the 2010 season.
 - Prefer match_info_v2 over ipl_match_info (cleaner types, has home/away team).
 - match_info_v2.date is a STRING 'YYYY-MM-DD'.
 - Join per-player stats to matches on match_id; players on player_id.
