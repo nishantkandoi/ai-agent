@@ -178,5 +178,95 @@
     "expected_answer": "The agent should say the data can't answer this: there is no captain information.",
     "notes": "",
     "trap": "Looks answerable. The agent may count CSK wins in matches Dhoni played and call them captaincy wins, which is wrong."
+  },
+  {
+    "id": "q21",
+    "category": "date/season",
+    "question": "Which IPL season had the fewest matches?",
+    "gold_sql": "SELECT SUBSTR(date, 1, 4) AS season_year, COUNT(*) AS matches FROM `ipl-nao.ipl_db.match_info_v2` GROUP BY season_year ORDER BY matches ASC LIMIT 3",
+    "expected_answer": "2009 (57 matches). 2008 had 58.",
+    "notes": "Season years are taken from the match date.",
+    "trap": "The first season (2008) is not the smallest. Answering 2008 is wrong."
+  },
+  {
+    "id": "q22",
+    "category": "aggregation",
+    "question": "How many runs did MS Dhoni score in IPL 2012, and in how many innings?",
+    "gold_sql": "SELECT batter, SUM(runs) AS runs, COUNT(*) AS innings FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE batter = 'MS Dhoni' AND EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2012 GROUP BY batter",
+    "expected_answer": "358 runs in 17 innings",
+    "notes": "Player is stored as 'MS Dhoni'.",
+    "trap": "Searching for 'Mahendra Singh Dhoni' finds nothing. The agent must use the stored name."
+  },
+  {
+    "id": "q23",
+    "category": "tricky",
+    "question": "Which team has played the most IPL matches?",
+    "gold_sql": "WITH t AS (SELECT team1 AS team FROM `ipl-nao.ipl_db.match_info_v2` UNION ALL SELECT team2 AS team FROM `ipl-nao.ipl_db.match_info_v2`) SELECT team, COUNT(*) AS matches FROM t GROUP BY team ORDER BY matches DESC LIMIT 3",
+    "expected_answer": "Mumbai Indians, 291 matches (then Royal Challengers Bengaluru 286, Delhi Capitals 281)",
+    "notes": "Each match has two teams, so both team1 and team2 must be counted.",
+    "trap": "Counting only team1 gives Royal Challengers Bengaluru (159) as the top team, which is wrong."
+  },
+  {
+    "id": "q24",
+    "category": "tricky",
+    "question": "Who had the highest strike rate in IPL 2024 among batters who faced at least 200 balls?",
+    "gold_sql": "SELECT batter, SUM(balls_faced) AS balls, ROUND(100 * SUM(runs) / SUM(balls_faced), 2) AS strike_rate FROM `ipl-nao.ipl_db.ipl_batter_match_stats` WHERE EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2024 GROUP BY batter HAVING SUM(balls_faced) >= 200 ORDER BY strike_rate DESC LIMIT 3",
+    "expected_answer": "Abhishek Sharma 204.22, then TM Head 191.55, PD Salt 182.01",
+    "notes": "Strike rate is total runs / total balls x 100 for the season.",
+    "trap": "Averaging the per-innings strike_rate column gives Abhishek Sharma 189.46, PD Salt 164.01, N Pooran 160.37, which is wrong."
+  },
+  {
+    "id": "q25",
+    "category": "ranking",
+    "question": "What is the biggest win by runs in IPL history?",
+    "gold_sql": "SELECT date, winner, win_margin, team1, team2 FROM `ipl-nao.ipl_db.match_info_v2` WHERE win_type = 'runs' ORDER BY win_margin DESC LIMIT 3",
+    "expected_answer": "Mumbai Indians by 146 runs over Delhi Capitals on 2017-05-06",
+    "notes": "win_type says whether a match was won by runs or by wickets. Only runs wins count.",
+    "trap": ""
+  },
+  {
+    "id": "q26",
+    "category": "tricky",
+    "question": "Who had the best economy rate in IPL 2024 among bowlers who bowled at least 60 balls?",
+    "gold_sql": "SELECT bowler, SUM(balls_bowled) AS balls, ROUND(6 * SUM(runs_conceded) / SUM(balls_bowled), 2) AS economy FROM `ipl-nao.ipl_db.ipl_bowler_match_stats` WHERE EXTRACT(YEAR FROM DATE(TIMESTAMP_MICROS(DIV(match_date, 1000)))) = 2024 GROUP BY bowler HAVING SUM(balls_bowled) >= 60 ORDER BY economy ASC LIMIT 3",
+    "expected_answer": "JJ Bumrah 6.48, SP Narine 6.69, MP Yadav 6.99",
+    "notes": "Economy is runs conceded x 6 / balls bowled for the season.",
+    "trap": "Averaging the per-match economy column puts M Theekshana third (7.20) instead of MP Yadav, which is wrong."
+  },
+  {
+    "id": "q27",
+    "category": "tricky",
+    "question": "How many times did the toss winner choose to field and then lose the match?",
+    "gold_sql": "SELECT COUNT(*) AS toss_winner_lost FROM `ipl-nao.ipl_db.match_info_v2` WHERE toss_decision = 'field' AND winner IS NOT NULL AND winner != toss_winner",
+    "expected_answer": "374 (out of 820 decided matches where the toss winner chose to field)",
+    "notes": "Matches with no winner must be excluded.",
+    "trap": "Counting every field decision (825) or including no-result matches gives the wrong count."
+  },
+  {
+    "id": "q28",
+    "category": "unanswerable",
+    "question": "How many runs did Virat Kohli score in the powerplay (overs 1-6) in IPL 2016?",
+    "gold_sql": null,
+    "expected_answer": "The agent should say the data can't answer this: there is no over-by-over data, so powerplay runs can't be separated out.",
+    "notes": "",
+    "trap": "The agent may answer with Kohli's full 2016 total (973) instead of saying the data can't measure powerplay runs."
+  },
+  {
+    "id": "q29",
+    "category": "unanswerable",
+    "question": "Who has taken the most catches as a fielder in IPL history?",
+    "gold_sql": null,
+    "expected_answer": "The agent should say the data can't answer this: it records that a batter was caught, but not who took the catch.",
+    "notes": "",
+    "trap": "The agent may count 'caught' dismissals per batter, which measures the wrong thing."
+  },
+  {
+    "id": "q30",
+    "category": "ranking",
+    "question": "What are the best bowling figures in a single IPL match?",
+    "gold_sql": "SELECT bowler, match_id, wickets, runs_conceded FROM `ipl-nao.ipl_db.ipl_bowler_match_stats` ORDER BY wickets DESC, runs_conceded ASC LIMIT 3",
+    "expected_answer": "SP Narine, 8 wickets for 24 runs",
+    "notes": "Best figures are ranked by most wickets, then fewest runs conceded.",
+    "trap": ""
   }
 ]
